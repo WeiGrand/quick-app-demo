@@ -1,0 +1,269 @@
+<template>
+  <!-- template里只能有一个根节点 -->
+  <div class="list-container">
+    <list class="list-main" onscrollbottom="loadMoreData">
+      <list-item type="goods" class="list-item" for="{{list}}" onclick="openWebView($item.ticket_url)">
+        <div class="list-item-content">
+          <stack class="list-item-image">
+            <image src="{{$item.img}}"></image>
+            <text show="{{!!$item.recommend_flag}}">{{$item.recommend_flag}}</text>
+          </stack>
+          <div class="list-item-info">
+            <text class="list-item-info-name">
+              {{$item.goods_name}}
+            </text>
+
+
+            <div class="list-item-info-label" show="{{!!($item.wap_tag.length === 2)}}">
+              <text class="time">{{$item.wap_tag[0]['value']}}</text>
+              <div class="discount">
+                <text class="discount-label" show="{{$item.coupons_status !== '2'}}">{{$item.coupon_info.show_type === '1' ? '用券' : '立减'}}</text>
+                <block if="{{!!$item.wap_tag[1]}}">
+                  <text class="discount-text">{{$item.wap_tag[1]['value']}}</text>
+                </block>
+              </div>
+            </div>
+
+            <div class="list-item-info-label" show="{{$item.wap_tag.length < 2}}">
+              <text class="time" show="{{$item.wap_tag[0]['class'] === 'ticketing_time'}}">{{$item.wap_tag[0]['value']}}</text>
+              <div class="discount" show="{{$item.wap_tag[0]['class'] !== 'ticketing_time'}}">
+                <text class="discount-label" show="{{$item.coupons_status !== '2'}}">{{$item.coupon_info.show_type === '1' ? '用券' : '立减'}}</text>
+                <text class="discount-text">{{$item.wap_tag[0]['value']}}</text>
+              </div>
+            </div>
+
+            <div class="list-item-info-bottom">
+              <div>
+                <text>￥</text>
+                <text class="low-price">{{$item.min_final_price}}</text>
+                <text>起</text>
+                <text class="high-price">￥{{$item.min_retail_price}}</text>
+              </div>
+              <div>
+                <text class="sale">{{$item.sales_volume}}{{$item.rec_suffix}}</text>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="list-item-border"></div>
+      </list-item>
+
+      <list-item type="loadMore" class="load-more" show="{{pagination['next_page'] !== pagination['page_count']}}">
+        <progress type="circular"></progress>
+        <text>加载更多</text>
+      </list-item>
+    </list>
+  </div>
+</template>
+
+<style lang="less" type="text/less">
+  .list {
+
+    &-container {
+
+    }
+
+    &-main {
+
+    }
+
+    &-item {
+      flex-direction: column;
+
+      &-content {
+        padding: 30px 30px 30px 24px;
+      }
+
+      &-border {
+        margin: 0 30px;
+        border: 1px solid #E1E1E1;
+        border-top-width: 0;
+      }
+
+      &-image {
+        margin-right: 20px;
+        padding-left: 6px;
+
+        text {
+          font-size: 20px;
+          line-height: 34px;
+          height: 34px;
+          color: #FFFFFF;
+          padding: 0 8px;
+          background-color: #E5004F;
+          border-radius: 4px;
+          border-bottom-left-radius: 0;
+          transform: translate(0, 16px);
+        }
+      }
+
+      image {
+        width: 240px;
+        height: 180px;
+        border-radius: 8px;
+        resize-mode: cover;
+        margin-left: 6px;
+      }
+
+      &-info {
+        flex: 1;
+        align-items: flex-start;
+        flex-direction: column;
+
+        &-name {
+          font-size: 28px;
+          line-height: 35px;
+          flex-wrap: wrap;
+          text-overflow: ellipsis;
+          color: #333333;
+          lines: 2;
+        }
+
+        &-label {
+          margin-top: 20px;
+
+          >text {
+            margin-right: 10px;
+            padding: 0 8px;
+            border-radius: 4px;
+          }
+
+          text {
+            font-size: 20px;
+            line-height: 30px;
+          }
+
+          >div {
+            border-radius: 4px;
+          }
+
+          .time {
+            color: #4e7cdd;
+            border: 1px solid #4e7cdd;
+          }
+
+          .discount {
+            border: 1px solid #f65e73;
+
+            &-label {
+              padding: 0 4px;
+              background-color: #f65e73;
+              border-radius: 4px;
+              border-top-right-radius: 0;
+              border-bottom-right-radius: 0;
+              color: #FFFFFF;
+            }
+
+            &-text {
+              color: #f65e73;
+              padding: 0 8px;
+            }
+          }
+        }
+
+        &-bottom {
+          margin-top: 20px;
+          width: 100%;
+
+          div {
+            flex: 1;
+          }
+
+          text {
+            color: #f40256;
+            font-size: 24px;
+            line-height: 24px;
+          }
+
+          .low-price {
+            font-size: 38px;
+          }
+
+          .high-price {
+            color: #999999;
+            text-decoration: line-through;
+            margin-left: 10px;
+          }
+
+          .sale {
+            flex: 1;
+            text-align: right;
+            color: #333333;
+          }
+        }
+      }
+    }
+  }
+</style>
+
+<script>
+  import fetch from '@system.fetch';
+  import webview from '@system.webview';
+
+  export default {
+    data: {
+      list: [],
+      pagination: {}
+    },
+
+    openWebView (url) {
+      webview.loadUrl({
+        url
+      })
+    },
+
+    async loadData (query = {}) {
+
+      return await new Promise((resolve, reject) => {
+        fetch.fetch({
+          url: `http://192.168.1.102:3000/api/list`,
+          data: query,
+          success: function (res) {
+            const {
+              code,
+              data
+            } = res;
+
+            if (code === 200) {
+
+              resolve(JSON.parse(data)['data']);
+            }
+          },
+          fail: function (data, code) {
+            reject({
+              code,
+              data
+            });
+          }
+        });
+      })
+    },
+
+    async loadMoreData () {
+      const {
+        next_page
+      } = this.pagination;
+
+      const data = await this.loadData({
+        p: next_page
+      });
+
+      this.list = this.list.concat(data.list);
+
+      this.pagination = data.pagination;
+
+      if (data.pagination['next_page'] === data.pagination['page_count']) {
+        this.isLastPage = true;
+      }
+    },
+
+    async onInit () {
+      const data = await this.loadData();
+
+      console.log(data);
+
+      this.list = data.list;
+      this.pagination = data.pagination;
+    }
+  }
+</script>
